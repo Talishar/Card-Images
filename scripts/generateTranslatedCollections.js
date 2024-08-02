@@ -38,7 +38,6 @@ async function main() {
 
         createOutputFileIfNotExists();
         
-
         do {
 
             console.log(`Starting batch number: ${batchNumber}`);
