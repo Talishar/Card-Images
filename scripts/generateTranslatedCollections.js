@@ -8,12 +8,14 @@ const { downloadJSON } = require('./utils/axiosHelper');
     This JSON can be used in the main app for the translations
 */
 
+const COLLECTION_TO_TRANSLATE = '2HP';
+
 const translatedCardsAPI = 'https://cards.fabtcg.com/api/search/v1/cards/?set_code=2HP&ordering=cards&language=es';
 const getEnglishCardsAPI = (cardId) => `https://cards.fabtcg.com/api/search/v1/cards/?q=${cardId}&language=en`;
 
 
 const collectionsFolderPath = `${path.dirname(path.dirname(__filename))}/data/collections`;
-const filePath = `${collectionsFolderPath}/2HP.json`;
+const filePath = `${collectionsFolderPath}/${COLLECTION_TO_TRANSLATE}.json`;
 
 const createOutputFileIfNotExists = () => {
     createFolderIfNotExists(collectionsFolderPath);
@@ -37,7 +39,7 @@ async function main() {
         };
 
         createOutputFileIfNotExists();
-        
+
         do {
 
             console.log(`Starting batch number: ${batchNumber}`);
@@ -54,12 +56,15 @@ async function main() {
                 const originalCardsResponse = await downloadJSON(getEnglishCardsAPI(cardId));
 
                 let isMatchCards = false;
-                const translatedCollection = path.basename(translatedcard.image.large).replace('ES_', '').replace('.webp', '');
+
+                const WORDS_TO_REPLACE = ['-RF', '-CF', 'JP_', 'L-', 'ES_', '.webp'];
+                let translatedCollection = path.basename(translatedcard.image.large);
+                WORDS_TO_REPLACE.forEach(word => translatedCollection = translatedCollection.replace(word, ''));
 
                 for (const originalCard of originalCardsResponse.results) {
                     if (originalCard.card_id === cardId) {
-                        const originalCollection = path.basename(originalCard.image.large).replace('.webp', '');
-
+                        let originalCollection = path.basename(originalCard.image.large);
+                        WORDS_TO_REPLACE.forEach(word => originalCollection = originalCollection.replace(word, ''));
                         const collectionMap = {
                             [originalCollection]: translatedCollection
                         };

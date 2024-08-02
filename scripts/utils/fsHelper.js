@@ -6,9 +6,7 @@ const createFolderIfNotExists = (path) => {
     }
 }
 
-const checkIfFolderExists = (path) => {
-    return fs.existsSync(path);
-}
+const checkIfPathExists = (path) => fs.existsSync(path);
 
 const createJsonIfNotExists = (path) => {
     if (!fs.existsSync(path)) {
@@ -29,7 +27,7 @@ const writeJSON = (filePath, data) => fs.writeFileSync(filePath, JSON.stringify(
 
 module.exports = {
     createFolderIfNotExists,
-    checkIfFolderExists,
+    checkIfPathExists,
     createJsonIfNotExists,
     readJSON,
     writeJSON

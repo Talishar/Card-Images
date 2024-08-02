@@ -1,5 +1,5 @@
 const path = require('path');
-const { createFolderIfNotExists, checkIfFolderExists } = require('./utils/fsHelper');
+const { createFolderIfNotExists, checkIfPathExists } = require('./utils/fsHelper');
 const { downloadJSON, downloadImage } = require('./utils/axiosHelper');
 const { saveCardImage, resizeImage, combineImages } = require('./utils/sharpHelper');
 
@@ -25,23 +25,30 @@ const composeInitialApiUrl = (locale) => `https://cards.fabtcg.com/api/search/v1
 // const composeInitialApiUrl = (locale) => `https://cards.fabtcg.com/api/search/v1/cards/set_code=EVO&language=${locale}`;
 
 // API to retrieve a specific card by card code and language
-// const composeInitialApiUrl = (locale) => `https://cards.fabtcg.com/api/search/v1/cards/?q=2HP532&language=${locale}`;
+// const composeInitialApiUrl = (locale) => `https://cards.fabtcg.com/api/search/v1/cards/?q=AKO004&language=${locale}`;
 
 // API to retrieve a specific card by name, collection and language
 // const composeInitialApiUrl = (locale) => `https://cards.fabtcg.com/api/search/v1/cards/?name=Teklo+Foundry+Heart&set_code=EVO&language=${locale}`;
 
-const mediaFolderPath = `${path.dirname(path.dirname(__filename))}/media/missing`;
+const mediaUploadedFolderPath = `${path.dirname(path.dirname(__filename))}/media/uploaded/public`;
+const mediaMissingFolderPath = `${path.dirname(path.dirname(__filename))}/media/missing`;
+
+const CARD_IMAGES = 'cardimages';
+const CARD_SQUARES = 'cardsquares';
 
 const createOutputFolderIfNotExists = (language, folderName) => {
-    const outputFilePath = `${mediaFolderPath}/${folderName}/${localeDictionary[language]}/`;
+    const outputFilePath = `${mediaMissingFolderPath}/${folderName}/${localeDictionary[language]}/`;
     createFolderIfNotExists(outputFilePath);
 }
 
-const getFilePathsByImageName = (imageUrl, language) => {
-    const imageName = path.basename(imageUrl).replace(`${language.toUpperCase()}_`, '').replace('-RF', '');
+const WORDS_TO_REPLACE = ['-RF', '-CF', 'JP_', 'L-'];
+
+const getFilePathsByImageName = (parentFolderPath, imageUrl, language) => {
+    let imageName = path.basename(imageUrl).replace(`${language.toUpperCase()}_`, '');
+    WORDS_TO_REPLACE.forEach(word => imageName = imageName.replace(word, ''));
     return {
-        cardImages: `${mediaFolderPath}/cardimages/${localeDictionary[language]}/${imageName}`,
-        cardSquares: `${mediaFolderPath}/cardsquares/${localeDictionary[language]}/${imageName}`
+        cardImages: `${parentFolderPath}/cardimages/${localeDictionary[language]}/${imageName}`,
+        cardSquares: `${parentFolderPath}/cardsquares/${localeDictionary[language]}/${imageName}`
     };
 };
 
@@ -54,24 +61,26 @@ async function main() {
             };
             let batchNumber = 1;
 
-            createOutputFolderIfNotExists(language, 'cardimages');
-            createOutputFolderIfNotExists(language, 'cardsquares');
+            createOutputFolderIfNotExists(language, CARD_IMAGES);
+            createOutputFolderIfNotExists(language, CARD_SQUARES);
 
             do {
-                data = await downloadJSON(composeInitialApiUrl(language));
+                data = await downloadJSON(data.next);
                 for (const card of data.results) {
                     const imageUrl = card.image.large;
                     if (!imageUrl) {
                         throw new Error('Image url not found in the JSON response');
                     }
-            
-                    const filepath = getFilePathsByImageName(imageUrl, language);
-                    
-                    if(!checkIfFolderExists(filepath.cardImages)) {
+
+                    const uploadedFilePath = getFilePathsByImageName(mediaUploadedFolderPath, imageUrl, language);
+
+                    if (!checkIfPathExists(uploadedFilePath.cardImages) || !checkIfPathExists(uploadedFilePath.cardSquares)) {
+                        console.log(`Generating card ${imageUrl}`)
+                        const missingFilePath = getFilePathsByImageName(mediaMissingFolderPath, imageUrl, language);
                         const imageData = await downloadImage(imageUrl);
                         const imageBuffer = await resizeImage(imageData);
-                        await saveCardImage(imageBuffer, filepath.cardImages);
-                        await combineImages(imageBuffer, filepath.cardSquares);
+                        await saveCardImage(imageBuffer, missingFilePath.cardImages);
+                        await combineImages(imageBuffer, missingFilePath.cardSquares);
                     }
                 }
 
