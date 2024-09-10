@@ -41,7 +41,7 @@ const createOutputFolderIfNotExists = (language, folderName) => {
     createFolderIfNotExists(outputFilePath);
 }
 
-const WORDS_TO_REPLACE = ['-RF', '-CF', 'JP_', 'L-'];
+const WORDS_TO_REPLACE = ['-RF', '-CF', 'JP_', 'L-', '-MV'];
 
 const getFilePathsByImageName = (parentFolderPath, imageUrl, language) => {
     let imageName = path.basename(imageUrl).replace(`${language.toUpperCase()}_`, '');
